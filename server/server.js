@@ -13,6 +13,18 @@ app.use(
 const Stripe = require('stripe');
 const stripe = Stripe(process.env.STRIPE_PRIVAT_KEY);
 
+const paypal = require('@paypal/checkout-server-sdk');
+const Environment =
+  process.env.NODE_ENV === 'production'
+    ? paypal.core.LiveEnvironment
+    : paypal.core.SandboxEnvironment;
+const paypalClient = new paypal.core.PayPalHttpClient(
+  new Environment(
+    process.env.PAYPAL_CLIENT_ID,
+    process.env.PAYPAL_CLIENT_SECRET,
+  ),
+);
+
 const products = [
   {
     id: 1,
@@ -166,6 +178,59 @@ app.post('/create-stripe-session', async (req, res) => {
       cancel_url: `${process.env.CLIENT_URL}/cancel`,
     });
     res.json({ url: session.url });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/create-paypal-order', async (req, res) => {
+  if (!req.body || !Array.isArray(req.body)) {
+    res.status(400).json({ error: 'Bad request' });
+  }
+
+  const request = new paypal.orders.OrdersCreateRequest();
+  const totalInCents = req.body.reduce((acc, { id, quantity = 1 }) => {
+    const itemToBuy = productsObj[id];
+    return acc + itemToBuy.price.priceInCents * quantity;
+  }, 0);
+
+  const total = (totalInCents / 100).toFixed(2);
+
+  request.prefer('return=representation');
+  request.requestBody({
+    intent: 'CAPTURE',
+    purchase_units: [
+      {
+        amount: {
+          currency_code: 'USD',
+          value: total,
+          breakdown: {
+            item_total: {
+              currency_code: 'USD',
+              value: total,
+            },
+          },
+        },
+        items: req.body.map(({ id, quantity = 1 }) => {
+          const itemToBuy = productsObj[id];
+          const price = (itemToBuy.price.priceInCents / 100).toFixed(2);
+
+          return {
+            name: itemToBuy.cardTitle,
+            unit_amount: {
+              currency_code: 'USD',
+              value: price,
+            },
+            quantity,
+          };
+        }),
+      },
+    ],
+  });
+
+  try {
+    const order = await paypalClient.execute(request);
+    res.json({ id: order.result.id });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
