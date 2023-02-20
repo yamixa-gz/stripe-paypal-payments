@@ -1,15 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import env from 'react-dotenv';
 
-export const initialState = {
-  data: undefined,
-  error: undefined,
-  isLoading: false,
-  isLoaded: false,
-};
-
-export const buyProductsWithStripeAsync = createAsyncThunk(
-  'products/fetchStripePostSlice',
+export const buyProductsWithPaypalAsync = createAsyncThunk(
+  'products/fetchPaypalPostSlice',
   async (payload = {}, { rejectWithValue }) => {
     const boughtProducts = Object.entries(payload).map(
       ([id, { quantity }]) => ({
@@ -20,7 +13,7 @@ export const buyProductsWithStripeAsync = createAsyncThunk(
 
     try {
       const boughtProductsResponse = await fetch(
-        `${env.SERVER_URL}/create-stripe-session`,
+        `${env.SERVER_URL}/create-paypal-order`,
         {
           method: 'POST',
           headers: {
@@ -29,9 +22,11 @@ export const buyProductsWithStripeAsync = createAsyncThunk(
           body: JSON.stringify(boughtProducts),
         },
       );
-      const { url } = await boughtProductsResponse.json();
+      const response = await boughtProductsResponse.json();
+      const { id } = response || {};
+
       return boughtProductsResponse.ok
-        ? url
+        ? id
         : rejectWithValue('Something went wrong');
     } catch (error) {
       rejectWithValue(error);
