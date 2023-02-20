@@ -5,18 +5,19 @@ import Loader from '../../components/Loader/Loader';
 import Cart from './components/Cart';
 import PropTypes from 'prop-types';
 import CartRow from './components/CartRow';
+import PayPalModal from './components/PayPalModal';
 
 function HomeView({
   addSelectedProducts,
   selectedProducts,
   onBuyWithStripe,
   onBuyWithPayPal,
+  handleClose,
+  showPayPalModal,
 }) {
   const {
     data: products,
     isLoading,
-    isLoaded,
-    error,
   } = useSelector(({ products }) => products);
 
   const productsList = products?.map(product => (
@@ -71,6 +72,11 @@ function HomeView({
           {isLoading ? <Loader /> : productsList}
         </div>
       </div>
+      <PayPalModal
+        showPayPalModal={showPayPalModal}
+        handleClose={handleClose}
+        selectedProducts={selectedProducts}
+      />
     </div>
   );
 }
@@ -80,6 +86,8 @@ HomeView.propTypes = {
   onBuyWithStripe: PropTypes.func,
   onBuyWithPayPal: PropTypes.func,
   selectedProducts: PropTypes.shape({}),
+  handleClose: PropTypes.func,
+  showPayPalModal: PropTypes.bool,
 };
 
 HomeView.defaultProps = {
@@ -87,5 +95,7 @@ HomeView.defaultProps = {
   selectedProducts: undefined,
   onBuyWithStripe: () => {},
   onBuyWithPayPal: () => {},
+  handleClose: () => {},
+  showPayPalModal: false,
 };
 export default HomeView;

@@ -7,6 +7,7 @@ import HomeView from './HomeView';
 function Home() {
   const dispatch = useDispatch();
   const [selectedProducts, setSelectedProducts] = useState({});
+  const [showPayPalModal, setShowPayPalModal] = useState(false);
 
   const addSelectedProducts = (id, name, priceInCents, productQuantity = 1) => {
     setSelectedProducts(selectedProducts => {
@@ -24,12 +25,12 @@ function Home() {
     });
   };
 
-  const onBuyWithStripe = () => {
-
-    dispatch(buyProductsWithStripeAsync(selectedProducts));
+  const onBuyWithStripe = async () => {
+    const { payload: url } = await dispatch(
+      buyProductsWithStripeAsync(selectedProducts),
+    );
+    window.location = url;
   };
-
-  const onBuyWithPayPal = () => {};
 
   useEffect(() => {
     dispatch(fetchProductsAsync());
@@ -40,7 +41,9 @@ function Home() {
       addSelectedProducts={addSelectedProducts}
       selectedProducts={selectedProducts}
       onBuyWithStripe={onBuyWithStripe}
-      onBuyWithPayPal={onBuyWithPayPal}
+      onBuyWithPayPal={() => setShowPayPalModal(true)}
+      handleClose={() => setShowPayPalModal(false)}
+      showPayPalModal={showPayPalModal}
     />
   );
 }
